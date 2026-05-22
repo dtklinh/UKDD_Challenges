@@ -6,3 +6,74 @@ editor: visual
 ---
 
 ## 
+
+```{r}
+#| echo: false
+#| message: FALSE
+library(Biostrings)
+library(dplyr)
+rm(list = ls())
+```
+
+## Challenge 1
+
+```{r}
+seqs <- Biostrings::readDNAStringSet("../data/KGE_DNA_test.fasta")
+
+## write a function to call reverseComplement
+get_reverseComplement <- function(input_DNAstring, start_idx=NA, end_idx=NA){
+  ## input_DNAstring    --> DNAString object
+  ## start_idx, end_idx --> integer within proper range: 1..length(seq)
+  ##---------------------------------------------------
+  ## check data type
+  tmp_seq <- NA
+  if(!"DNAString" %in% class(input_DNAstring)){
+    stop("input_DNAstring has to be DNAString object")
+  }
+  ## check if index is integer
+  if(is.na(start_idx) || is.na(end_idx)){
+    print("Index is not valid, use a whole read instead!")
+    tmp_seq <- 
+  }
+  
+  ## check condition
+  
+  ## return value
+  res <- input_DNAstring %>% 
+    subseq(start = start_idx, end = end_idx) %>% 
+    Biostrings::reverseComplement()
+  return(res)
+}
+
+get_reverseComplement(seqs[[1]], 2, 10) %>% print()
+```
+
+## Challenge 2
+
+```{r}
+
+```
+
+## Challenge 3
+
+```{r}
+
+```
+
+## Challenge 4
+
+```{r}
+
+```
+
+## Challenge 5
+
+```{r}
+
+```
+
+## Challenge 6
+
+```{r}
+
+```
