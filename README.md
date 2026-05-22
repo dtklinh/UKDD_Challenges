@@ -1,0 +1,1 @@
+Solutions for challenges from UKDD - Clinic of Genetics
