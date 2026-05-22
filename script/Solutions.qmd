@@ -50,8 +50,24 @@ get_reverseComplement(seqs[[1]], 2, 10) %>% print()
 
 ## Challenge 2
 
-```{r}
+Assumption two reads already aligned (have the same length)
 
+```{r}
+transition_lst <- c("AG", "GA", "CT", "TC")
+transition_num  <- 0
+transversion_num <- 0
+S1 <- seqs[[1]] %>% as.character()
+S2 <- seqs[[2]] %>% as.character()
+for(i in 1:nchar(S1)){
+  if(substr(S1,i,i) == substr(S2,i,i)){next}
+  if(paste0(substr(S1,i,i), substr(S2, i, i)) %in% transition_lst){
+    transition_num <- transition_num +1
+  }else{
+    transversion_num <- transversion_num +1
+  }
+}
+R <- transition_num/transversion_num
+print(sprintf("transition/transversion ratio is: %f", R))
 ```
 
 ## Challenge 3
