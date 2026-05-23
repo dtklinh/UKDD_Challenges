@@ -73,13 +73,49 @@ print(sprintf("transition/transversion ratio is: %f", R))
 ## Challenge 3
 
 ```{r}
-
+t <- "ACGTTGCA"
+idxs <- gregexpr(t, seqs[[1]])[[1]] %>% as.vector()
+print(t)
+## double check
+for(i in idxs){
+  print(sprintf("Sub-string starts with an index: %i --> %s", i, substr(seqs[[1]], i, (i+nchar(t)-1))))
+}
 ```
 
 ## Challenge 4
 
-```{r}
+Find maximal repeat of a string
 
+```{r}
+Check_maximal_repeat(S, t, min_bp = 20){
+  t_idx <- gregexpr2(pattern = t, text = S)[[1]]
+  if(length(t_idx)<=1){
+    return(FALSE)
+  }
+  if(!1 %in% t_idx){
+    ## expand to the left
+    tmp_t <- substr(S, t_idx[1]-1, t_idx[1]-1 + length(t))
+  }
+  if(1 %in% t_idx){
+    ## can only expand to the right
+    tmp_t <- substr(S, t_idx[1], t_idx[1] + length(t))
+    tmp_idx <- gregexpr2(tmp_t, S)
+    if(length(setdiff(t_idx, tmp_idx))==0){
+      return(FALSE)
+    }else{return(TRUE)}
+  } 
+}
+S1 <- seqs[[1]] %>% as.character()
+min_bp <- 20
+until <- length(S1)-1
+
+lst_maximal <- c()
+## start from 1, go through the string
+for(i in 1:until){
+  t <- substr(S1, i, i+min_bp-1)
+  t_idx <- gregexpr2(t, S1)[[1]]
+  if(length(t_idx))
+}
 ```
 
 ## Challenge 5

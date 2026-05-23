@@ -1,7 +1,7 @@
 ## if nesscessary, install libglpk-dev, libgsl-dev, libfl-dev, libuv1-dev
 ## sudo apt install libcairo2-dev libfontconfig1-dev pandoc
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-BiocManager::install(c("tidyverse", "Biostrings", "dplyr"), update = FALSE)
+#BiocManager::install(c("tidyverse", "Biostrings", "dplyr"), update = FALSE)
 
 
 
@@ -10,28 +10,10 @@ required_pkgs <- c(
   "fs",
   "googledrive",
   "googlesheets4",
-  "reprex"
-  # "Wrench",
-  # "ggtext",
-  # "ggraph",
-  # "DT",
-  # "readxl",
-  # "corncob",
-  # "VennDiagram",
-  # "DirichletMultinomial",
-  # "mia",
-  # "ANCOMBC",
-  # "emmeans",
-  # "pbkrtest",
-  # "glmnet",
-  # "torch",
-  # "devtools",
-  # "skimr",
-  # "rstatix",
-  # "ggpubr",
-  # "reshape2",
-  # "ALDEx2",
-  # "Maaslin2"
+  "reprex",
+  "tidyverse",
+  "Biostrings",
+  "dplyr"
 )
 
 to_install <- setdiff(required_pkgs, rownames(installed.packages()))
