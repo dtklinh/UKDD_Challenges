@@ -74,7 +74,8 @@ print(sprintf("transition/transversion ratio is: %f", R))
 
 ```{r}
 t <- "ACGTTGCA"
-idxs <- gregexpr(t, seqs[[1]])[[1]] %>% as.vector()
+S <- seqs[[1]] %>% as.character()
+idxs <- Biostrings::gregexpr2(t, S)[[1]]
 print(t)
 ## double check
 for(i in idxs){
@@ -87,41 +88,69 @@ for(i in idxs){
 Find maximal repeat of a string
 
 ```{r}
-Check_maximal_repeat(S, t, min_bp = 20){
+## debug(Check_maximal_repeat)
+## Check_maximal_repeat("ACGTAAATCGTAT", "CG")
+Check_maximal_repeat <- function(S, t){
   t_idx <- gregexpr2(pattern = t, text = S)[[1]]
   if(length(t_idx)<=1){
     return(FALSE)
   }
   if(!1 %in% t_idx){
     ## expand to the left
-    tmp_t <- substr(S, t_idx[1]-1, t_idx[1]-1 + length(t))
-  }
-  if(1 %in% t_idx){
-    ## can only expand to the right
-    tmp_t <- substr(S, t_idx[1], t_idx[1] + length(t))
-    tmp_idx <- gregexpr2(tmp_t, S)
+    t_left_expand <- substr(S, t_idx[1]-1, t_idx[1]-1 + nchar(t))
+    tmp_idx <- gregexpr2(t_left_expand, S)[[1]]
+    tmp_idx <- tmp_idx +1
     if(length(setdiff(t_idx, tmp_idx))==0){
       return(FALSE)
-    }else{return(TRUE)}
-  } 
+    }
+  }
+  ## can only expand to the right
+  t_right_expand <- substr(S, t_idx[1], t_idx[1] + nchar(t))
+  tmp_idx <- gregexpr2(t_right_expand, S)[[1]]
+  if(length(setdiff(t_idx, tmp_idx))==0){
+    return(FALSE)
+  }else{return(TRUE)}
 }
-S1 <- seqs[[1]] %>% as.character()
+S <- seqs[[1]] %>% as.character()
+#S <- "TAGTTAGCGAGA"
 min_bp <- 20
-until <- length(S1)-1
+#t_init <- subseq(Sm 1, min_bp)
 
 lst_maximal <- c()
+num <- 0
 ## start from 1, go through the string
-for(i in 1:until){
-  t <- substr(S1, i, i+min_bp-1)
-  t_idx <- gregexpr2(t, S1)[[1]]
-  if(length(t_idx))
+for(i in 1:(nchar(S) - min_bp+1)){
+  for(j in (i+min_bp-1):nchar(S)){
+    t <- subseq(S, i, j)
+    if(length(gregexpr2(t,S)[[1]])==1){
+      print(sprintf("Break at (i,j) = (%d,%d)", i, j))
+      break
+      }
+    if(Check_maximal_repeat(S,t) && !t %in% lst_maximal){
+      lst_maximal <- c(lst_maximal, t)
+      num <- num +1
+      print(sprintf("%d: %s", num, t))
+    }
+  }
+  if(num>=30){break}
 }
+print(lst_maximal)
 ```
 
 ## Challenge 5
 
 ```{r}
-
+library(fastqcr)
+df <- rprojroot::find_rstudio_root_file() %>% 
+  file.path("test_data/AN215152_S2_R1_001_fastqc/fastqc_data.txt") %>% 
+  fastqcr::qc_read(modules = "Per sequence quality scores", verbose = F)
+df <- df$per_sequence_quality_scores
+## sum the number of reads whose quality score less than 30
+res <- df %>% 
+  filter(Quality <30) %>% 
+  pull(Count) %>% 
+  sum()
+print(sprintf("Number of reads whose quality score is less than 30: %d", res))
 ```
 
 ## Challenge 6
@@ -129,3 +158,5 @@ for(i in 1:until){
 ```{r}
 
 ```
+
+## Remarks
