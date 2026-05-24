@@ -1,15 +1,19 @@
 ---
 title: "Solutions for UKDD Challenges"
 author: "Linh Dang"
-format: html
+format:
+  html:
+    toc: true
+    code-fold: true
+    code-summary: "Show code"
 editor: visual
 ---
 
-## 
-
 ```{r}
-#| echo: false
-#| message: FALSE
+#| code-fold: true
+#| message: false
+#| warning: false
+
 library(Biostrings)
 library(dplyr)
 rm(list = ls())
@@ -18,22 +22,28 @@ rm(list = ls())
 ## Challenge 1
 
 ```{r}
-seqs <- Biostrings::readDNAStringSet("../data/KGE_DNA_test.fasta")
+#| message: false
+#| warning: false
+
+seqs <- rprojroot::find_rstudio_root_file() %>% 
+  file.path("data/KGE_DNA_test.fasta") %>% 
+  Biostrings::readDNAStringSet()
 
 ## write a function to call reverseComplement
-get_reverseComplement <- function(input_DNAstring, start_idx=NA, end_idx=NA){
+get_reverseComplement <- function(input_DNAstring, start_idx=1, end_idx=2){
   ## input_DNAstring    --> DNAString object
   ## start_idx, end_idx --> integer within proper range: 1..length(seq)
+  ## end_idx >= start_idx > 0
   ##---------------------------------------------------
   ## check data type
-  tmp_seq <- NA
+  #tmp_seq <- NA
   if(!"DNAString" %in% class(input_DNAstring)){
     stop("input_DNAstring has to be DNAString object")
   }
   ## check if index is integer
   if(is.na(start_idx) || is.na(end_idx)){
-    print("Index is not valid, use a whole read instead!")
-    tmp_seq <- 
+    stop("Index is not valid!")
+    #tmp_seq <- 
   }
   
   ## check condition
@@ -44,8 +54,11 @@ get_reverseComplement <- function(input_DNAstring, start_idx=NA, end_idx=NA){
     Biostrings::reverseComplement()
   return(res)
 }
-
-get_reverseComplement(seqs[[1]], 2, 10) %>% print()
+idx_start <- 2
+idx_end <- 10
+res <- get_reverseComplement(seqs[[1]], idx_start, idx_end)
+print(sprintf("Original seq: %s", subseq(seqs[[1]], idx_start, idx_end)))
+print(sprintf("Reversed complement seq: %s", res))
 ```
 
 ## Challenge 2
@@ -53,6 +66,9 @@ get_reverseComplement(seqs[[1]], 2, 10) %>% print()
 Assumption two reads already aligned (have the same length)
 
 ```{r}
+#| message: false
+#| warning: false
+
 transition_lst <- c("AG", "GA", "CT", "TC")
 transition_num  <- 0
 transversion_num <- 0
@@ -73,6 +89,10 @@ print(sprintf("transition/transversion ratio is: %f", R))
 ## Challenge 3
 
 ```{r}
+#| code-fold: true
+#| message: false
+#| warning: false
+
 t <- "ACGTTGCA"
 S <- seqs[[1]] %>% as.character()
 idxs <- Biostrings::gregexpr2(t, S)[[1]]
@@ -88,6 +108,9 @@ for(i in idxs){
 Find maximal repeat of a string
 
 ```{r}
+#| message: false
+#| warning: false
+
 ## debug(Check_maximal_repeat)
 ## Check_maximal_repeat("ACGTAAATCGTAT", "CG")
 Check_maximal_repeat <- function(S, t){
@@ -123,13 +146,13 @@ for(i in 1:(nchar(S) - min_bp+1)){
   for(j in (i+min_bp-1):nchar(S)){
     t <- subseq(S, i, j)
     if(length(gregexpr2(t,S)[[1]])==1){
-      print(sprintf("Break at (i,j) = (%d,%d)", i, j))
+      #print(sprintf("Break at (i,j) = (%d,%d)", i, j))
       break
       }
     if(Check_maximal_repeat(S,t) && !t %in% lst_maximal){
       lst_maximal <- c(lst_maximal, t)
       num <- num +1
-      print(sprintf("%d: %s", num, t))
+      ##print(sprintf("%d: %s", num, t))
     }
   }
   if(num>=30){break}
@@ -140,6 +163,9 @@ print(lst_maximal)
 ## Challenge 5
 
 ```{r}
+#| message: false
+#| warning: false
+
 library(fastqcr)
 df <- rprojroot::find_rstudio_root_file() %>% 
   file.path("test_data/AN215152_S2_R1_001_fastqc/fastqc_data.txt") %>% 
@@ -155,8 +181,156 @@ print(sprintf("Number of reads whose quality score is less than 30: %d", res))
 
 ## Challenge 6
 
-```{r}
+### Observation
 
+1\) If a set X has N elements, its corresponding difference multiset $\Delta(X)$ has N\*(N-1)/2 elements.
+
+2\) Set X and set X + a (plus elementwise) have the same difference multiset.
+
+3\) Suppose X has N elements and in order $X =\{x_1, x_2,...,x_N | x_1 < x_2 <...< x_N\}$, the biggest element in $\Delta(X)$ has to be $x_N - x_1$.
+
+4\) The following $N-1$ elements could be used to determined the rest: $$\{(x_N - x_1), (x_N -x_2), ..., (x_N -x_{N-1})\}$$
+
+### Approach
+
+1\) Construct a linear system $Ax=B$ to capture the differences.
+
+$$\begin{aligned}
+x_N+0*x_{N-1}+...+0*x_2 -x_1 &= b_1 \\
+x_N+0*x_{N-1}+...-x_2 +0*x_1 &= b_2 \\
+... \\
+x_N - x_{N-1}+...+0*x_2 + 0*x_1 &= b_{N-1}
+\end{aligned}$$
+
+where $b_1$ is the biggest element in $\Delta(X)$, and $b_2 > b_3 > ... > b_{N-1}$.
+
+2\) The other differences are the difference among above linear equations. Thus the set \$\\{b_1, b_2,...,b\_{N-1}\\}\$ must have the difference multiset as \$\\{b_N,b\_{N+1},...\\}\$
+
+3\) $X \rightarrow \Delta(X)$ is much easier to calculate than $X \leftarrow \Delta(X)$
+
+```{r}
+#| message: false
+#| warning: false
+
+library(pracma)
+rm(list = ls())
+
+## generate difference multiset of a given set
+Diff_Multiset_generate <- function(X_input){
+   X <- X_input[!duplicated(X_input)]
+   if(length(X) != length(X_input)){
+     print("coercing into a set")
+   }
+   N <- length(X)
+   L <- c()
+   for(i in 1:(N-1)){
+     for (j in (i+1):N) {
+       L <- c(L, abs(X[i]-X[j]))
+     }
+   }
+   L <- sort(L)
+   return(L)
+}
+##---------
+## estimate original set from its corresponding difference multiset
+Estimate_orignal <- function(L, max_iter_num = 100){
+  ## L is multiset containing positive elements
+  L <- sort(L, decreasing = T)
+  N <- (1 + sqrt(8*length(L)+1))/2
+  if(N != round(N)){
+    stop("Number of elements in difference delta multiset is wrong!!!")
+  }
+  ## suppose that N >=3, in this case, when dealing with A*x = B, we will have the number of columns is greater than number of rows. Thus we muss apply decomposition to solve the matrix system
+  ## A has dimension (N-1) x N
+  A <- zeros(n=N-1, m = N)
+  A[,N] <- 1
+  A[,1:(N-1)] <- -1*diag(N-1)
+  ## It is more tricky to construct B. We know that the first value of B has to be biggest value in L, but the rest are not sure, but they have to be distinct. 
+  ## One way to tackle is that we compute all possibilites, and check the validation, as mentioned aboved.
+  B <- c(L[1])
+  L_reduced <- L[2:length(L)]
+  L_reduced <- L_reduced[!duplicated(L_reduced)]
+  All_cmbn <- combn(L_reduced, N-2)
+  Solutions <- c()
+  iter_num <- 0
+  ##max_iter_num <- 100
+  for(i in 1:ncol(All_cmbn)){
+    if(iter_num > max_iter_num){
+      ## the number of all combinations could be huge, thus only check with certain amount. 
+      print(sprintf("Maximum number of iteration: %d has been reached! Increase if needed", max_iter_num))
+      break}
+    B <- c(L[1])
+    B <- c(B, All_cmbn[,i]) %>% sort(decreasing = T)
+    rest <- L[-match(B,L)] %>% sort(decreasing = T)
+    B_delta <- Diff_Multiset_generate(B) %>% sort(decreasing = T)
+    if(!all(rest == B_delta)){
+      ## wrong guest, move to next combination
+      iter_num <- iter_num +1
+      next
+    }
+    asvd = svd(A)
+    adiag = diag(1/asvd$d)
+    #adiag <- adiag *1
+    solution = asvd$v %*% adiag %*% t(asvd$u) %*% B
+    ## shift solution
+    min_val <- min(solution)
+    solution <- solution + (1-min_val)
+    Solutions <- cbind(Solutions, solution)
+    ##print(Solutions)
+    iter_num <- iter_num +1
+    ##
+  }
+  return(Solutions)
+}
+####-------------------
+
+L <- c(2,2,3,3,4,5,6,7,8,10)
+# X <- c(1,4,5,14,19,20,25)
+# L <- Diff_Multiset_generate(X)
+Solutions <- Estimate_orignal(L, max_iter_num = 10000)
+print(Solutions)
 ```
 
 ## Remarks
+
+Overall, I have implemented those functions with expectations that users will give the proper inputs. The next step could be:
+
+- Better: Check and restrict users' inputs and announce errors whenever encountering wrong inputs.
+
+- Best: Implementing unit testing for each functions.
+
+The follows are the remarks for each challenge:
+
+### Challenge 1
+
+At the moment the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string as character.
+
+Start and end indices when sub-sequence a read could be thoroughly controlled in order to always deliver proper results.
+
+### Challenge 2
+
+In this example, two reads are already aligned. In general case, we could apply alignment before calculate the transition/transversion ratio.
+
+### Challenge 3
+
+It is important to use gregexpr2 from Biostrings package, the other similar function (base::gregexpr) will only return non-overlap substrings.
+
+### Challenge 4
+
+- The complexity of my function to find all maximal repeat of a string is at least \$O(n\^2)\$ where \$n\$ is the length of the string. Thus, it can grow very quickly when the string is long.
+
+- I believe that there is more optimal algorithm tackling that problem, such as deplying suffix-tree algorithm when working with string.
+
+- I set the number threshold for maximal repeat to save time.
+
+### Challenge 5
+
+I used Fastqc on Bioinformatics server and download the results to PC for processing.
+
+### Challenge 6
+
+- I also shared my observations and strategy to tackle this problem.
+
+- The complexity of this algirithm depends on the number of combinations from the \$\\Delta(X)\$. Thus, it could be extremely big when dealing with a big multiset.
+
+- I believe that there is another way to limit the number of combinations, thus reducing the complexity.

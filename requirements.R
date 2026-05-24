@@ -14,7 +14,8 @@ required_pkgs <- c(
   "tidyverse",
   "Biostrings",
   "dplyr",
-  "fastqcr"
+  "fastqcr",
+  "pracma"
 )
 
 to_install <- setdiff(required_pkgs, rownames(installed.packages()))
