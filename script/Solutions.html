@@ -503,19 +503,127 @@ x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 <span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a><span class="do">####-------------------</span></span>
 <span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>L <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">6</span>,<span class="dv">7</span>,<span class="dv">8</span>,<span class="dv">10</span>)</span>
-<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a><span class="co"># X &lt;- c(1,4,5,14,19,20,25)</span></span>
-<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a><span class="co"># L &lt;- Diff_Multiset_generate(X)</span></span>
-<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>Solutions <span class="ot">&lt;-</span> <span class="fu">Estimate_orignal</span>(L, <span class="at">max_iter_num =</span> <span class="dv">10000</span>)</span>
-<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(Solutions)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a><span class="co">#L &lt;- c(2,2,3,3,4,5,6,7,8,10)</span></span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">4</span>,<span class="dv">9</span>,<span class="dv">14</span>,<span class="dv">19</span>,<span class="dv">20</span>,<span class="dv">25</span>)</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>L <span class="ot">&lt;-</span> <span class="fu">Diff_Multiset_generate</span>(X)</span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>Solutions <span class="ot">&lt;-</span> <span class="fu">Estimate_orignal</span>(L, <span class="at">max_iter_num =</span> <span class="dv">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Maximum number of iteration: 1000 has been reached! Increase if needed"</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(Solutions)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>     [,1] [,2]
 [1,]    1    1
-[2,]    3    4
-[3,]    5    7
-[4,]    8    9
-[5,]   11   11</code></pre>
+[2,]    4    6
+[3,]    9    7
+[4,]   14   12
+[5,]   19   17
+[6,]   20   22
+[7,]   25   25</code></pre>
+</div>
+</div>
+<p><strong>Updated version</strong></p>
+<p>Using prior knowledge to get B instead of go through all random combinations. And note that if we shift the set to <span class="math inline">\(-x_1\)</span> (<span class="math inline">\(x_1\)</span> become 0 and <span class="math inline">\(x_N\)</span> is the biggest element in the difference multiset), we have the same difference multiset. Thus, the values of vector <span class="math inline">\(B\)</span> additional with <span class="math inline">\(0\)</span> is the set we want to find.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="do">## calculate the upper bound of index to reduce computational cost.</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="do">## value from the lower-left rectangle</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>upper_bound <span class="ot">&lt;-</span> <span class="cf">function</span>(i, N) {</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  (i <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> N <span class="sc">-</span> i <span class="sc">*</span> (i <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">/</span> <span class="dv">2</span> <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># check if a vec is fitted with L</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="do">## check if delta(vec) is sub-multiset of L\vec</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>check_validity <span class="ot">&lt;-</span> <span class="cf">function</span>(L, vec){</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="co">#vec &lt;- vec %&gt;% sort(decreasing = T)</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="co">#return(grepl(paste(Diff_Multiset_generate(vec) %&gt;% sort(decreasing = T),collapse=";"),paste(L_reduced,collapse=";"))&gt;0)</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  A <span class="ot">&lt;-</span> <span class="fu">Diff_Multiset_generate</span>(vec) <span class="sc">%&gt;%</span> <span class="fu">sort</span>(<span class="at">decreasing =</span> T)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  B <span class="ot">&lt;-</span> L[<span class="sc">-</span><span class="fu">match</span>(vec,L)]</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  freq_A <span class="ot">&lt;-</span> <span class="fu">table</span>(A)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  freq_B <span class="ot">&lt;-</span> <span class="fu">table</span>(B)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#print(freq_A)</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">#print(freq_B)</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># All elements of A must exist in B with sufficient count</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">all</span>(</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sapply</span>(<span class="fu">names</span>(freq_A), <span class="cf">function</span>(el) {</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>      (freq_B[el] <span class="sc">%in%</span> <span class="cn">NA</span>) <span class="sc">==</span> <span class="cn">FALSE</span> <span class="sc">&amp;&amp;</span>   <span class="co"># element exists in B</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>        freq_A[el] <span class="sc">&lt;=</span> freq_B[el]            <span class="co"># B has at least as many copies</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a><span class="do">##----------------------------</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>pick_all_elements <span class="ot">&lt;-</span> <span class="cf">function</span>(L) {</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>  N <span class="ot">&lt;-</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">sqrt</span>(<span class="dv">8</span><span class="sc">*</span><span class="fu">length</span>(L)<span class="sc">+</span><span class="dv">1</span>))<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(N <span class="sc">!=</span> <span class="fu">round</span>(N)){</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"Number of elements in difference delta multiset is wrong!!!"</span>)</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>  all_solutions <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Recursive backtracking</span></span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>  <span class="co"># i       : current pick (1 to N-1)</span></span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>  <span class="co"># min_idx : to keep the last picked index</span></span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>  backtrack <span class="ot">&lt;-</span> <span class="cf">function</span>(i, min_idx, picked_vals) {</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (i <span class="sc">&gt;</span> N <span class="sc">-</span> <span class="dv">1</span>){</span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>      all_solutions[[<span class="fu">length</span>(all_solutions) <span class="sc">+</span> <span class="dv">1</span>]] <span class="ot">&lt;&lt;-</span> picked_vals <span class="do">## save picked_value to global var</span></span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    } <span class="do">##return(list())  # All N-1 elements picked successfully</span></span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>    ub <span class="ot">&lt;-</span> <span class="fu">upper_bound</span>(i,N)           <span class="co"># Allowed range: L[1:ub], but must be &gt; min_idx</span></span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Valid indices for this pick: must be in [1, ub] AND &gt; min_idx</span></span>
+<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>    valid_indices <span class="ot">&lt;-</span> <span class="fu">seq</span>(min_idx <span class="sc">+</span> <span class="dv">1</span>, ub)</span>
+<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(valid_indices) <span class="sc">==</span> <span class="dv">0</span>) <span class="fu">return</span>(<span class="cn">NULL</span>)  <span class="co"># Dead end</span></span>
+<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Randomly shuffle to get a random valid solution (not always the first)</span></span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (idx <span class="cf">in</span> <span class="fu">seq</span>(min_idx <span class="sc">+</span> <span class="dv">1</span>, ub)) {</span>
+<span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>      <span class="do">## check </span></span>
+<span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>      candidate_vals <span class="ot">&lt;-</span> <span class="fu">c</span>(picked_vals, L[idx])</span>
+<span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">length</span>(candidate_vals) <span class="sc">&gt;</span><span class="dv">1</span>){</span>
+<span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a>        <span class="do">## check if two same elements in a set</span></span>
+<span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span>(<span class="fu">length</span>(candidate_vals) <span class="sc">!=</span> <span class="fu">length</span>(candidate_vals[<span class="sc">!</span><span class="fu">duplicated</span>(candidate_vals)])) <span class="cf">next</span></span>
+<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>        <span class="do">## check if a picked value satisfied the property of complete.</span></span>
+<span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (<span class="sc">!</span><span class="fu">check_validity</span>(L, candidate_vals)) <span class="cf">next</span></span>
+<span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb20-62"><a href="#cb20-62" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb20-63"><a href="#cb20-63" aria-hidden="true" tabindex="-1"></a>      <span class="do">## next round</span></span>
+<span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a>      <span class="fu">backtrack</span>(i <span class="sc">+</span> <span class="dv">1</span>, idx, candidate_vals)</span>
+<span id="cb20-65"><a href="#cb20-65" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-66"><a href="#cb20-66" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-67"><a href="#cb20-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">backtrack</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="fu">c</span>())</span>
+<span id="cb20-68"><a href="#cb20-68" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-69"><a href="#cb20-69" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(all_solutions) <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb20-70"><a href="#cb20-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"No valid selection found."</span>)</span>
+<span id="cb20-71"><a href="#cb20-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb20-72"><a href="#cb20-72" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-73"><a href="#cb20-73" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-74"><a href="#cb20-74" aria-hidden="true" tabindex="-1"></a>  Solutions <span class="ot">&lt;-</span> all_solutions[<span class="sc">!</span><span class="fu">duplicated</span>(<span class="fu">as.list</span>(all_solutions))]</span>
+<span id="cb20-75"><a href="#cb20-75" aria-hidden="true" tabindex="-1"></a>  mx <span class="ot">&lt;-</span> <span class="fu">sapply</span>(Solutions, <span class="cf">function</span>(x)<span class="fu">cbind</span>(x))</span>
+<span id="cb20-76"><a href="#cb20-76" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">rbind</span>(mx, <span class="dv">0</span>))</span>
+<span id="cb20-77"><a href="#cb20-77" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-78"><a href="#cb20-78" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb20-79"><a href="#cb20-79" aria-hidden="true" tabindex="-1"></a><span class="do">### Test ------------------</span></span>
+<span id="cb20-80"><a href="#cb20-80" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">4</span>,<span class="dv">9</span>,<span class="dv">14</span>,<span class="dv">19</span>,<span class="dv">20</span>,<span class="dv">25</span>)</span>
+<span id="cb20-81"><a href="#cb20-81" aria-hidden="true" tabindex="-1"></a>L <span class="ot">&lt;-</span> <span class="fu">Diff_Multiset_generate</span>(X) <span class="sc">%&gt;%</span> <span class="fu">sort</span>(<span class="at">decreasing =</span> T)</span>
+<span id="cb20-82"><a href="#cb20-82" aria-hidden="true" tabindex="-1"></a>Solutions <span class="ot">&lt;-</span> <span class="fu">pick_all_elements</span>(L)</span>
+<span id="cb20-83"><a href="#cb20-83" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(Solutions)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1] [,2]
+[1,]   24   24
+[2,]   21   19
+[3,]   16   18
+[4,]   11   13
+[5,]    6    8
+[6,]    5    3
+[7,]    0    0</code></pre>
 </div>
 </div>
 </section>
@@ -530,12 +638,12 @@ x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 <p>The follows are the remarks for each challenge:</p>
 <section id="challenge-1-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-1-1">Challenge 1</h3>
-<p>At the moment the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string as character.</p>
-<p>Start and end indices when sub-sequence a read could be thoroughly controlled in order to always deliver proper results.</p>
+<p>At the moment the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string of character.</p>
+<p>Start and end indices when sub-sequencing a read could be thoroughly controlled in order to always deliver proper results.</p>
 </section>
 <section id="challenge-2-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-2-1">Challenge 2</h3>
-<p>In this example, two reads are already aligned. In general case, we could apply alignment before calculate the transition/transversion ratio.</p>
+<p>In this example, two reads are already aligned. In general case, we could apply alignment, such as msa::msaClustalOmega, before calculate the transition/transversion ratio.</p>
 </section>
 <section id="challenge-3-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-3-1">Challenge 3</h3>
@@ -545,8 +653,8 @@ x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 <h3 class="anchored" data-anchor-id="challenge-4-1">Challenge 4</h3>
 <ul>
 <li><p>The complexity of my function to find all maximal repeat of a string is at least $O(n^2)$ where $n$ is the length of the string. Thus, it can grow very quickly when the string is long.</p></li>
-<li><p>I believe that there is more optimal algorithm tackling that problem, such as deplying suffix-tree algorithm when working with string.</p></li>
-<li><p>I set the number threshold for maximal repeat to save time.</p></li>
+<li><p>I believe that there is more optimal algorithm tackling that problem, such as deploying a suffix-tree algorithm when working with string.</p></li>
+<li><p>I set the threshold for number of maximal repeat to save time.</p></li>
 </ul>
 </section>
 <section id="challenge-5-1" class="level3">
@@ -556,9 +664,12 @@ x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 <section id="challenge-6-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-6-1">Challenge 6</h3>
 <ul>
-<li><p>I also shared my observations and strategy to tackle this problem.</p></li>
-<li><p>The complexity of this algirithm depends on the number of combinations from the $\Delta(X)$. Thus, it could be extremely big when dealing with a big multiset.</p></li>
-<li><p>I believe that there is another way to limit the number of combinations, thus reducing the complexity.</p></li>
+<li><p>The complexity of the first version algorithm depends on the number of combinations from the <span class="math inline">\(\Delta(X)\)</span>. Thus, it could be extremely big when dealing with a big multiset. Furthermore, the algorithm will spend a lot of time checking the validity of those combinations.</p></li>
+<li><p>In the updated version, I add two more keys observations which allows to significantly reduce the running time:</p>
+<ul>
+<li><p>Shifting all values in a set <span class="math inline">\(X\)</span> such that its smallest value to 0, this trick could save us computation of solving system of linear algebra as in the first version.</p></li>
+<li><p>Let <span class="math inline">\(X^{(0)}\)</span> be the set of <span class="math inline">\(X\)</span> after shifting to 0. Then we have <span class="math inline">\(X^{(0)} \cup \Delta(X^{(0)}) = L\)</span>. Thus, adding new element to find the original set <span class="math inline">\(X\)</span> must satisfy the property: <span class="math inline">\(\Delta(X^{(0)'}) \subseteq \Delta(X) \setminus X^{(0)'}\)</span>.</p></li>
+</ul></li>
 </ul>
 </section>
 </section>

@@ -82,7 +82,232 @@ Estimate_orignal <- function(L){
   }
   return(Solutions)
 }
-#---
-X <- c(1,3,6,7,10,11)
-L <- c(2,2,3,3,4,5,6,7,8,10)
-solutions <- Estimate_orignal(L)
+###---------
+Estimate_orignal_v02 <- function(L){
+  L <- sort(L, decreasing = T)
+  N <- (1 + sqrt(8*length(L)+1))/2
+  if(N != round(N)){
+    stop("Number of elements in difference delta multiset is wrong!!!")
+  }
+  
+  A <- zeros(n=N-1, m = N)
+  A[,N] <- 1
+  A[,1:(N-1)] <- -1*diag(N-1)
+  B <- c(L[1])
+  All_pos <- list(L[1])
+  ## instead of list of all combinations, add one at a time
+  L_reduced <- L[2:length(L)]
+  for(i in 2:(N-1)){
+    ## rank of ith element 
+    candidates <- L[2:((i-1)*N-i*(i-1)/2 +1)]
+    for(c in candidates){
+      for(item in All_pos){
+        if(min(item) > c){
+          
+        }
+      }
+    }
+    
+  }
+  
+}
+
+##### test------------------
+# Compute the upper bound index for each pick i (1-indexed)
+upper_bound <- function(i, N) {
+  (i - 1) * N - i * (i - 1) / 2 + 1
+}
+# check if a vec is fitted with L
+check_validity <- function(L, vec){
+  #vec <- vec %>% sort(decreasing = T)
+  #return(grepl(paste(Diff_Multiset_generate(vec) %>% sort(decreasing = T),collapse=";"),paste(L_reduced,collapse=";"))>0)
+  A <- Diff_Multiset_generate(vec) %>% sort(decreasing = T)
+  B <- L[-match(vec,L)]
+  freq_A <- table(A)
+  freq_B <- table(B)
+  #print(freq_A)
+  #print(freq_B)
+  
+  # All elements of A must exist in B with sufficient count
+  all(
+    sapply(names(freq_A), function(el) {
+      (freq_B[el] %in% NA) == FALSE &&   # element exists in B
+        freq_A[el] <= freq_B[el]            # B has at least as many copies
+    })
+  )
+}
+pick_elements <- function(L, N) {
+  
+  # Recursive backtracking
+  # i       : current pick (1 to N-1)
+  # min_idx : picked index must be > last picked index (to stay strictly decreasing in value)
+  backtrack <- function(i, min_idx, picked_vals) {
+    
+    if (i > N - 1) return(list())  # All N-1 elements picked successfully
+    #if (i > N - 1) return(picked_vals)
+    
+    ub <- upper_bound(i,N)           # Allowed range: L[1:ub], but must be > min_idx
+    
+    # Valid indices for this pick: must be in [1, ub] AND > min_idx
+    valid_indices <- seq(min_idx + 1, ub)
+    
+    if (length(valid_indices) == 0) return(NULL)  # Dead end
+    
+    # Randomly shuffle to get a random valid solution (not always the first)
+    for (idx in sample(valid_indices)) {
+      ## check 
+      candidate_vals <- c(picked_vals, L[idx])
+      if(length(candidate_vals) >1){
+        if(length(candidate_vals) != length(candidate_vals[!duplicated(candidate_vals)])) next
+        if (!check_validity(L, candidate_vals)) next
+        
+      }
+      
+      result <- backtrack(i + 1, idx, candidate_vals)
+      if (!is.null(result)) {
+        return(c(list(list(value = L[idx], index = idx)), result))
+      }
+    }
+    
+    return(NULL)  # No valid pick found
+  }
+  
+  solution <- backtrack(1, 0, c())
+  
+  if (is.null(solution)) {
+    message("No valid selection found.")
+    return(NULL)
+  }
+  
+  # Extract values and indices
+  values  <- sapply(solution, `[[`, "value")
+  indices <- sapply(solution, `[[`, "index")
+  
+  list(values = values, indices = indices)
+}
+###---------------------------
+pick_all_elements <- function(L, N) {
+  
+  all_solutions <- list()
+  # Recursive backtracking
+  # i       : current pick (1 to N-1)
+  # min_idx : picked index must be > last picked index (to stay strictly decreasing in value)
+  backtrack <- function(i, min_idx, picked_vals) {
+    
+    if (i > N - 1){
+      all_solutions[[length(all_solutions) + 1]] <<- picked_vals
+      return(invisible(NULL))
+    } ##return(list())  # All N-1 elements picked successfully
+    #if (i > N - 1) return(picked_vals)
+    
+    ub <- upper_bound(i,N)           # Allowed range: L[1:ub], but must be > min_idx
+    
+    # Valid indices for this pick: must be in [1, ub] AND > min_idx
+    valid_indices <- seq(min_idx + 1, ub)
+    
+    if (length(valid_indices) == 0) return(NULL)  # Dead end
+    
+    # Randomly shuffle to get a random valid solution (not always the first)
+    for (idx in seq(min_idx + 1, ub)) {
+      ## check 
+      candidate_vals <- c(picked_vals, L[idx])
+      if(length(candidate_vals) >1){
+        if(length(candidate_vals) != length(candidate_vals[!duplicated(candidate_vals)])) next
+        if (!check_validity(L, candidate_vals)) next
+        
+      }
+      
+      backtrack(i + 1, idx, candidate_vals)
+      # if (length(all_solutions) == 0) {
+      #   message("No valid selection found.")
+      #   return(NULL)
+      # }
+      # if (!is.null(result)) {
+      #   return(c(list(list(value = L[idx], index = idx)), result))
+      # }
+    }
+    
+    #return(NULL)  # No valid pick found
+  }
+  
+  backtrack(1, 0, c())
+  
+  if (length(all_solutions) == 0) {
+    message("No valid selection found.")
+    return(NULL)
+  }
+  
+  # Return as a tidy list of named vectors
+  lapply(all_solutions, function(vals) {
+    setNames(vals, paste0("x_", seq_along(vals)))
+  })
+}
+##----------------------------
+
+pick_elements_V00 <- function(L, N) {
+  
+  # Compute the upper bound index for each pick i (1-indexed)
+  # upper_bound <- function(i) {
+  #   (i - 1) * N - i * (i - 1) / 2 + 1
+  # }
+  
+  # Recursive backtracking
+  # i       : current pick (1 to N-1)
+  # min_idx : picked index must be > last picked index (to stay strictly decreasing in value)
+  backtrack <- function(i, min_idx) {
+    
+    if (i > N - 1) return(list())  # All N-1 elements picked successfully
+    
+    ub <- upper_bound(i)           # Allowed range: L[1:ub], but must be > min_idx
+    
+    # Valid indices for this pick: must be in [1, ub] AND > min_idx
+    valid_indices <- seq(min_idx + 1, ub)
+    
+    if (length(valid_indices) == 0) return(NULL)  # Dead end
+    
+    # Randomly shuffle to get a random valid solution (not always the first)
+    for (idx in sample(valid_indices)) {
+      result <- backtrack(i + 1, idx)
+      if (!is.null(result)) {
+        return(c(list(list(value = L[idx], index = idx)), result))
+      }
+    }
+    
+    return(NULL)  # No valid pick found
+  }
+  
+  solution <- backtrack(1, 0)
+  
+  if (is.null(solution)) {
+    message("No valid selection found.")
+    return(NULL)
+  }
+  
+  # Extract values and indices
+  values  <- sapply(solution, `[[`, "value")
+  indices <- sapply(solution, `[[`, "index")
+  
+  list(values = values, indices = indices)
+}
+
+###-----------
+
+
+# set.seed(42)
+# N <- 5
+# L_length <- N * (N - 1) / 2    # = 15
+# L <- sort(sample(100, L_length), decreasing = TRUE)
+X <- c(1,4,5,14,19,20,25)
+L <- Diff_Multiset_generate(X)
+L <- sort(L, decreasing = T)
+# cat("L =", L, "\n\n")
+# 
+result <- pick_elements(L, N = 7)
+# ##### end test -------------
+# #---
+# X <- c(1,3,6,7,10,11)
+# L <- c(2,2,3,3,4,5,6,7,8,10)
+# solutions <- Estimate_orignal(L)
+
+## Position(function(x) identical(x, c(2,3,1) %>% sort()), xxx, nomatch = 0)
+## grepl(paste(x,collapse=";"),paste(y2,collapse=";"))

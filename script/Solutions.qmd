@@ -284,10 +284,103 @@ Estimate_orignal <- function(L, max_iter_num = 100){
 }
 ####-------------------
 
-L <- c(2,2,3,3,4,5,6,7,8,10)
-# X <- c(1,4,5,14,19,20,25)
-# L <- Diff_Multiset_generate(X)
-Solutions <- Estimate_orignal(L, max_iter_num = 10000)
+#L <- c(2,2,3,3,4,5,6,7,8,10)
+X <- c(1,4,9,14,19,20,25)
+L <- Diff_Multiset_generate(X)
+Solutions <- Estimate_orignal(L, max_iter_num = 1000)
+print(Solutions)
+```
+
+**Updated version**
+
+Using prior knowledge to get B instead of go through all random combinations. And note that if we shift the set to $-x_1$ ($x_1$ become 0 and $x_N$ is the biggest element in the difference multiset), we have the same difference multiset. Thus, the values of vector $B$ additional with $0$ is the set we want to find.
+
+```{r}
+#| message: false
+#| warning: false
+
+## calculate the upper bound of index to reduce computational cost.
+## value from the lower-left rectangle
+upper_bound <- function(i, N) {
+  (i - 1) * N - i * (i - 1) / 2 + 1
+}
+# check if a vec is fitted with L
+## check if delta(vec) is sub-multiset of L\vec
+check_validity <- function(L, vec){
+  #vec <- vec %>% sort(decreasing = T)
+  #return(grepl(paste(Diff_Multiset_generate(vec) %>% sort(decreasing = T),collapse=";"),paste(L_reduced,collapse=";"))>0)
+  A <- Diff_Multiset_generate(vec) %>% sort(decreasing = T)
+  B <- L[-match(vec,L)]
+  freq_A <- table(A)
+  freq_B <- table(B)
+  #print(freq_A)
+  #print(freq_B)
+  
+  # All elements of A must exist in B with sufficient count
+  all(
+    sapply(names(freq_A), function(el) {
+      (freq_B[el] %in% NA) == FALSE &&   # element exists in B
+        freq_A[el] <= freq_B[el]            # B has at least as many copies
+    })
+  )
+}
+##----------------------------
+pick_all_elements <- function(L) {
+  
+  N <- (1 + sqrt(8*length(L)+1))/2
+  if(N != round(N)){
+    stop("Number of elements in difference delta multiset is wrong!!!")
+  }
+  
+  all_solutions <- list()
+  # Recursive backtracking
+  # i       : current pick (1 to N-1)
+  # min_idx : to keep the last picked index
+  backtrack <- function(i, min_idx, picked_vals) {
+    
+    if (i > N - 1){
+      all_solutions[[length(all_solutions) + 1]] <<- picked_vals ## save picked_value to global var
+      return(NULL)
+    } ##return(list())  # All N-1 elements picked successfully
+    
+    ub <- upper_bound(i,N)           # Allowed range: L[1:ub], but must be > min_idx
+    
+    # Valid indices for this pick: must be in [1, ub] AND > min_idx
+    valid_indices <- seq(min_idx + 1, ub)
+    
+    if (length(valid_indices) == 0) return(NULL)  # Dead end
+    
+    # Randomly shuffle to get a random valid solution (not always the first)
+    for (idx in seq(min_idx + 1, ub)) {
+      ## check 
+      candidate_vals <- c(picked_vals, L[idx])
+      if(length(candidate_vals) >1){
+        ## check if two same elements in a set
+        if(length(candidate_vals) != length(candidate_vals[!duplicated(candidate_vals)])) next
+        ## check if a picked value satisfied the property of complete.
+        if (!check_validity(L, candidate_vals)) next
+        
+      }
+      ## next round
+      backtrack(i + 1, idx, candidate_vals)
+    }
+  }
+  backtrack(1, 0, c())
+  
+  if (length(all_solutions) == 0) {
+    message("No valid selection found.")
+    return(NULL)
+  }
+  
+  Solutions <- all_solutions[!duplicated(as.list(all_solutions))]
+  mx <- sapply(Solutions, function(x)cbind(x))
+  return(rbind(mx, 0))
+  
+}
+### Test ------------------
+X <- c(1,4,9,14,19,20,25)
+L <- Diff_Multiset_generate(X) %>% sort(decreasing = T)
+Solutions <- pick_all_elements(L)
 print(Solutions)
 ```
 
@@ -303,13 +396,13 @@ The follows are the remarks for each challenge:
 
 ### Challenge 1
 
-At the moment the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string as character.
+At the moment the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string of character.
 
-Start and end indices when sub-sequence a read could be thoroughly controlled in order to always deliver proper results.
+Start and end indices when sub-sequencing a read could be thoroughly controlled in order to always deliver proper results.
 
 ### Challenge 2
 
-In this example, two reads are already aligned. In general case, we could apply alignment before calculate the transition/transversion ratio.
+In this example, two reads are already aligned. In general case, we could apply alignment, such as msa::msaClustalOmega, before calculate the transition/transversion ratio.
 
 ### Challenge 3
 
@@ -319,9 +412,9 @@ It is important to use gregexpr2 from Biostrings package, the other similar func
 
 - The complexity of my function to find all maximal repeat of a string is at least \$O(n\^2)\$ where \$n\$ is the length of the string. Thus, it can grow very quickly when the string is long.
 
-- I believe that there is more optimal algorithm tackling that problem, such as deplying suffix-tree algorithm when working with string.
+- I believe that there is more optimal algorithm tackling that problem, such as deploying a suffix-tree algorithm when working with string.
 
-- I set the number threshold for maximal repeat to save time.
+- I set the threshold for number of maximal repeat to save time.
 
 ### Challenge 5
 
@@ -329,8 +422,10 @@ I used Fastqc on Bioinformatics server and download the results to PC for proces
 
 ### Challenge 6
 
-- I also shared my observations and strategy to tackle this problem.
+- The complexity of the first version algorithm depends on the number of combinations from the $\Delta(X)$. Thus, it could be extremely big when dealing with a big multiset. Furthermore, the algorithm will spend a lot of time checking the validity of those combinations.
 
-- The complexity of this algirithm depends on the number of combinations from the \$\\Delta(X)\$. Thus, it could be extremely big when dealing with a big multiset.
+- In the updated version, I add two more keys observations which allows to significantly reduce the running time:
 
-- I believe that there is another way to limit the number of combinations, thus reducing the complexity.
+  - Shifting all values in a set $X$ such that its smallest value to 0, this trick could save us computation of solving system of linear algebra as in the first version.
+
+  - Let $X^{(0)}$ be the set of $X$ after shifting to 0. Then we have $X^{(0)} \cup \Delta(X^{(0)}) = L$. Thus, adding new element to find the original set $X$ must satisfy the property: $\Delta(X^{(0)'}) \subseteq \Delta(X) \setminus X^{(0)'}$.
