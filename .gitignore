@@ -6,3 +6,4 @@ data/*
 question/*
 renv/*
 .positai
+*.zip

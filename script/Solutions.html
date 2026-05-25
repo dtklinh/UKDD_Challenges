@@ -297,12 +297,12 @@ window.Quarto = {
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="do">## expand to the left</span></span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    t_left_expand <span class="ot">&lt;-</span> <span class="fu">substr</span>(S, t_idx[<span class="dv">1</span>]<span class="sc">-</span><span class="dv">1</span>, t_idx[<span class="dv">1</span>]<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> <span class="fu">nchar</span>(t))</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    tmp_idx <span class="ot">&lt;-</span> <span class="fu">gregexpr2</span>(t_left_expand, S)[[<span class="dv">1</span>]]</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    tmp_idx <span class="ot">&lt;-</span> tmp_idx <span class="sc">+</span><span class="dv">1</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    tmp_idx <span class="ot">&lt;-</span> tmp_idx <span class="sc">+</span><span class="dv">1</span> <span class="do">## index are shifted, thus need to be adjusted</span></span>
 <span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>(<span class="fu">length</span>(<span class="fu">setdiff</span>(t_idx, tmp_idx))<span class="sc">==</span><span class="dv">0</span>){</span>
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">FALSE</span>)</span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="do">## can only expand to the right</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="do">## expand to the right</span></span>
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  t_right_expand <span class="ot">&lt;-</span> <span class="fu">substr</span>(S, t_idx[<span class="dv">1</span>], t_idx[<span class="dv">1</span>] <span class="sc">+</span> <span class="fu">nchar</span>(t))</span>
 <span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  tmp_idx <span class="ot">&lt;-</span> <span class="fu">gregexpr2</span>(t_right_expand, S)[[<span class="dv">1</span>]]</span>
 <span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">length</span>(<span class="fu">setdiff</span>(t_idx, tmp_idx))<span class="sc">==</span><span class="dv">0</span>){</span>
@@ -426,7 +426,7 @@ x_N+0*x_{N-1}+...-x_2 +0*x_1 &amp;= b_2 \\
 x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 \end{aligned}\]</span></p>
 <p>where <span class="math inline">\(b_1\)</span> is the biggest element in <span class="math inline">\(\Delta(X)\)</span>, and <span class="math inline">\(b_2 &gt; b_3 &gt; ... &gt; b_{N-1}\)</span>.</p>
-<p>2) The other differences are the difference among above linear equations. Thus the set $\{b_1, b_2,…,b_{N-1}\}$ must have the difference multiset as $\{b_N,b_{N+1},…\}$</p>
+<p>2) The other differences are the difference among above linear equations. Thus the set <span class="math inline">\(\{b_1, b_2,...,b_{N-1}\}\)</span> must have the difference multiset equal to <span class="math inline">\(\{b_N,b_{N+1},...\}\)</span></p>
 <p>3) <span class="math inline">\(X \rightarrow \Delta(X)\)</span> is much easier to calculate than <span class="math inline">\(X \leftarrow \Delta(X)\)</span></p>
 <div class="cell">
 <details class="code-fold">
@@ -638,12 +638,12 @@ x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 <p>The follows are the remarks for each challenge:</p>
 <section id="challenge-1-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-1-1">Challenge 1</h3>
-<p>At the moment the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string of character.</p>
+<p>Currently, the function only except input as a sequence of DNAString object, but it could be easily adjusted to accept string of character.</p>
 <p>Start and end indices when sub-sequencing a read could be thoroughly controlled in order to always deliver proper results.</p>
 </section>
 <section id="challenge-2-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-2-1">Challenge 2</h3>
-<p>In this example, two reads are already aligned. In general case, we could apply alignment, such as msa::msaClustalOmega, before calculate the transition/transversion ratio.</p>
+<p>In this example, two reads are already aligned. In general case, we could apply alignment algorithm, such as msa::msaClustalOmega, before calculate the transition/transversion ratio.</p>
 </section>
 <section id="challenge-3-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-3-1">Challenge 3</h3>
@@ -652,7 +652,7 @@ x_N - x_{N-1}+...+0*x_2 + 0*x_1 &amp;= b_{N-1}
 <section id="challenge-4-1" class="level3">
 <h3 class="anchored" data-anchor-id="challenge-4-1">Challenge 4</h3>
 <ul>
-<li><p>The complexity of my function to find all maximal repeat of a string is at least $O(n^2)$ where $n$ is the length of the string. Thus, it can grow very quickly when the string is long.</p></li>
+<li><p>The complexity of my function to find all maximal repeat of a string is at least <span class="math inline">\(O(n^2)\)</span> where <span class="math inline">\(n\)</span> is the length of the string. Thus, it can grow very quickly when the string is long.</p></li>
 <li><p>I believe that there is more optimal algorithm tackling that problem, such as deploying a suffix-tree algorithm when working with string.</p></li>
 <li><p>I set the threshold for number of maximal repeat to save time.</p></li>
 </ul>
